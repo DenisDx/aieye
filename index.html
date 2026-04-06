@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="/favicon.ico">
+  <title>AI Eye</title>
+  <style>
+    :root{--a:#00897b;--bg:#121212;--card:#1e1e1e;--t:#e0e0e0;--m:#888}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--t);font:15px/1.6 'Segoe UI',system-ui,sans-serif;padding:1rem}
+    h1{color:var(--a);font-size:1.35rem;margin-bottom:1rem;letter-spacing:.04em}
+    h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--a);margin-bottom:.75rem}
+    .card{background:var(--card);border-radius:8px;padding:1rem;margin-bottom:1rem}
+    #cam{display:block;width:100%;max-width:640px;border-radius:6px;background:#000;min-height:80px}
+    .stat{font-size:.83rem;display:grid;gap:.35rem}
+    .stat span{display:flex;justify-content:space-between;border-bottom:1px solid #2a2a2a;padding-bottom:.3rem}
+    .stat .lbl{color:var(--m)}
+    .stat b{color:var(--t)}
+    label{display:block;font-size:.85rem;color:var(--m);margin-bottom:.65rem}
+    input,select{display:block;width:100%;padding:.4rem .6rem;margin-top:.2rem;
+      background:#252525;border:1px solid #3a3a3a;border-radius:4px;color:var(--t);font-size:.9rem}
+    input:focus,select:focus{outline:none;border-color:var(--a)}
+    fieldset{border:1px solid #2e2e2e;border-radius:6px;padding:.8rem;margin-bottom:.8rem}
+    legend{color:var(--a);font-size:.72rem;letter-spacing:.07em;padding:0 .4em;text-transform:uppercase}
+    .hint{font-size:.72rem;color:var(--m);margin-top:.15rem}
+    button{background:var(--a);color:#fff;border:none;border-radius:4px;
+      padding:.5rem 1.3rem;cursor:pointer;font-size:.9rem;margin-top:.25rem}
+    button:hover{opacity:.88}
+    #msg{margin-top:.5rem;font-size:.82rem;color:var(--a);min-height:1.2em}
+  </style>
+</head>
+<body>
+<h1>&#9924; AI Eye</h1>
+
+<div class="card">
+  <h2>Live Preview</h2>
+  <img id="cam" src="/photo" alt="camera">
+</div>
+
+<div class="card">
+  <h2>Device Status</h2>
+  <div class="stat">
+    <span><span class="lbl">WiFi</span>      <b id="s-wifi">…</b></span>
+    <span><span class="lbl">IP</span>        <b id="s-ip">…</b></span>
+    <span><span class="lbl">Quality</span>   <b id="s-q">…</b></span>
+    <span><span class="lbl">Resolution</span><b id="s-r">…</b></span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Settings</h2>
+  <form id="frm">
+    <fieldset>
+      <legend>WiFi</legend>
+      <label>Network (SSID)
+        <input name="ssid" type="text" autocomplete="off" placeholder="Network name">
+        <span class="hint">Leave blank to keep current</span>
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="new-password" placeholder="••••••••">
+        <span class="hint">Leave blank to keep current</span>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Camera</legend>
+      <label>JPEG Quality (10–100, higher = better image)
+        <input name="quality" type="number" min="10" max="100" value="90">
+      </label>
+      <label>Resolution
+        <select name="framesize">
+          <option value="13">UXGA  1600×1200  (default)</option>
+          <option value="12">SXGA  1280×1024</option>
+          <option value="11">HD    1280×720</option>
+          <option value="10">SVGA  800×600</option>
+          <option value="8" >VGA   640×480</option>
+          <option value="6" >QVGA  320×240</option>
+        </select>
+      </label>
+      <label>
+        <input id="light_enabled" name="light_enabled" type="checkbox" style="display:inline-block;width:auto;margin-right:.45rem;vertical-align:middle">Enable white illumination assist
+        <span class="hint">Turns on side white LEDs during assisted captures</span>
+      </label>
+      <label>White Illumination Brightness (0–100%)
+        <input name="light_bri" type="number" min="0" max="100" value="100">
+      </label>
+      <label>Assist Trigger Threshold by Capture Time (ms)
+        <input name="light_thr_ms" type="number" min="50" max="5000" value="300">
+        <span class="hint">If capture takes longer than this, assist window is enabled for 10 minutes</span>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>RGB LED</legend>
+      <label>Blue Heartbeat Brightness (0–100%)
+        <input name="led_blue" type="number" min="0" max="100" value="10">
+      </label>
+      <label>Green Capture Duration (ms)
+        <input name="led_cap_ms" type="number" min="20" max="2000" value="250">
+      </label>
+      <label>Green Capture Brightness (0–100%)
+        <input name="led_cap_bri" type="number" min="0" max="100" value="100">
+      </label>
+    </fieldset>
+    <button type="submit">Save &amp; Restart</button>
+    <div id="msg"></div>
+  </form>
+</div>
+
+<script>
+const RESOLUTIONS = {
+  13:'UXGA 1600×1200', 12:'SXGA 1280×1024', 11:'HD 1280×720',
+  10:'SVGA 800×600',    8:'VGA 640×480',      6:'QVGA 320×240'
+};
+
+// Rolling camera preview – double-buffer to avoid flicker
+const cam = document.getElementById('cam');
+let busy = false;
+setInterval(() => {
+  if (busy) return;
+  busy = true;
+  const img = new Image();
+  img.onload  = () => { cam.src = img.src; busy = false; };
+  img.onerror = () => { busy = false; };
+  img.src = '/photo?t=' + Date.now();
+}, 1000);
+
+// Device status polling
+function pollStatus() {
+  fetch('/status')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('s-wifi').textContent = d.wifi || '(not connected)';
+      document.getElementById('s-ip').textContent   = d.ip   || '–';
+      document.getElementById('s-q').textContent    = d.quality + '%';
+      document.getElementById('s-r').textContent    = RESOLUTIONS[d.framesize] || d.framesize;
+
+      const frm = document.getElementById('frm');
+      if (Number.isFinite(+d.quality)) frm.quality.value = d.quality;
+      if (Number.isFinite(+d.framesize)) frm.framesize.value = String(d.framesize);
+      if (Number.isFinite(+d.light_enabled)) frm.light_enabled.checked = (+d.light_enabled !== 0);
+      if (Number.isFinite(+d.light_bri)) frm.light_bri.value = d.light_bri;
+      if (Number.isFinite(+d.light_thr_ms)) frm.light_thr_ms.value = d.light_thr_ms;
+      if (Number.isFinite(+d.led_blue)) frm.led_blue.value = d.led_blue;
+      if (Number.isFinite(+d.led_cap_ms)) frm.led_cap_ms.value = d.led_cap_ms;
+      if (Number.isFinite(+d.led_cap_bri)) frm.led_cap_bri.value = d.led_cap_bri;
+    })
+    .catch(() => {});
+}
+pollStatus();
+setInterval(pollStatus, 5000);
+
+// Settings form – submit via fetch
+document.getElementById('frm').addEventListener('submit', e => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  msg.textContent = 'Saving…';
+  const fd = new FormData(e.target);
+  fd.set('light_enabled', e.target.light_enabled.checked ? '1' : '0');
+  fetch('/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(fd)
+  })
+  .then(r => r.text())
+  .then(t => { msg.textContent = t; })
+  .catch(() => { msg.textContent = 'Request failed – check connection'; });
+});
+</script>
+</body>
+</html>
