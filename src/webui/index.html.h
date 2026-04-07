@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-// index.html.c: 7360 bytes  (PROGMEM – flash, not RAM)
+// index.html.c: 8676 bytes  (PROGMEM – flash, not RAM)
 extern const uint8_t index_html_data[] PROGMEM;
 extern const size_t  index_html_size;
 

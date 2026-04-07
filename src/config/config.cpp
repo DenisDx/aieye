@@ -11,6 +11,7 @@ static constexpr char KEY_LIGHT_THR[] = "light_thr";
 static constexpr char KEY_LED_BLUE[]  = "led_blue";
 static constexpr char KEY_LED_CAP_MS[]= "led_cap_ms";
 static constexpr char KEY_LED_CAP_BR[]= "led_cap_br";
+static constexpr char KEY_MIRROR[]    = "mirror_en";
 
 // Open NVS namespace and populate in-memory state from stored values.
 void Config::begin() {
@@ -25,6 +26,7 @@ void Config::begin() {
     _ledBlueBrightness   = _prefs.getUChar(KEY_LED_BLUE, 10);
     _ledCaptureDurationMs= _prefs.getUShort(KEY_LED_CAP_MS, 250);
     _ledCaptureBrightness= _prefs.getUChar(KEY_LED_CAP_BR, 100);
+    _mirrorEnabled = _prefs.getBool(KEY_MIRROR, false);
 }
 
 String Config::getSSID()     const { return _ssid; }
@@ -83,6 +85,9 @@ void Config::setLedCaptureBrightness(uint8_t v) {
     _ledCaptureBrightness = v;
 }
 
+bool Config::getMirrorEnabled() const { return _mirrorEnabled; }
+void Config::setMirrorEnabled(bool v) { _mirrorEnabled = v; }
+
 // Persist current in-memory state to NVS.
 void Config::save() {
     _prefs.putString(KEY_SSID,     _ssid);
@@ -95,6 +100,7 @@ void Config::save() {
     _prefs.putUChar(KEY_LED_BLUE,   _ledBlueBrightness);
     _prefs.putUShort(KEY_LED_CAP_MS,_ledCaptureDurationMs);
     _prefs.putUChar(KEY_LED_CAP_BR, _ledCaptureBrightness);
+    _prefs.putBool(KEY_MIRROR, _mirrorEnabled);
 }
 
 // Erase all keys in the NVS namespace and reset in-memory state to defaults.
@@ -110,4 +116,5 @@ void Config::reset() {
     _ledBlueBrightness = 10;
     _ledCaptureDurationMs = 250;
     _ledCaptureBrightness = 100;
+    _mirrorEnabled = false;
 }

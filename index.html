@@ -64,6 +64,9 @@
     </fieldset>
     <fieldset>
       <legend>Camera</legend>
+      <label>
+        <input id="mirror_enabled" name="mirror_enabled" type="checkbox" style="display:inline-block;width:auto;margin-right:.45rem;vertical-align:middle">Mirror image (horizontal flip)
+      </label>
       <label>JPEG Quality (10–100, higher = better image)
         <input name="quality" type="number" min="10" max="100" value="90">
       </label>
@@ -112,6 +115,18 @@ const RESOLUTIONS = {
   10:'SVGA 800×600',    8:'VGA 640×480',      6:'QVGA 320×240'
 };
 
+// Fields updated by status polling; track which ones the user has edited.
+const dirtyFields = new Set();
+const POLLED_FIELDS = ['mirror_enabled','quality','framesize','light_enabled',
+                       'light_bri','light_thr_ms','led_blue','led_cap_ms','led_cap_bri'];
+(function attachDirtyListeners() {
+  const frm = document.getElementById('frm');
+  POLLED_FIELDS.forEach(name => {
+    const el = frm.elements[name];
+    if (el) el.addEventListener('change', () => dirtyFields.add(name));
+  });
+})();
+
 // Rolling camera preview – double-buffer to avoid flicker
 const cam = document.getElementById('cam');
 let busy = false;
@@ -135,14 +150,15 @@ function pollStatus() {
       document.getElementById('s-r').textContent    = RESOLUTIONS[d.framesize] || d.framesize;
 
       const frm = document.getElementById('frm');
-      if (Number.isFinite(+d.quality)) frm.quality.value = d.quality;
-      if (Number.isFinite(+d.framesize)) frm.framesize.value = String(d.framesize);
-      if (Number.isFinite(+d.light_enabled)) frm.light_enabled.checked = (+d.light_enabled !== 0);
-      if (Number.isFinite(+d.light_bri)) frm.light_bri.value = d.light_bri;
-      if (Number.isFinite(+d.light_thr_ms)) frm.light_thr_ms.value = d.light_thr_ms;
-      if (Number.isFinite(+d.led_blue)) frm.led_blue.value = d.led_blue;
-      if (Number.isFinite(+d.led_cap_ms)) frm.led_cap_ms.value = d.led_cap_ms;
-      if (Number.isFinite(+d.led_cap_bri)) frm.led_cap_bri.value = d.led_cap_bri;
+      if (!dirtyFields.has('mirror_enabled') && Number.isFinite(+d.mirror_enabled)) frm.mirror_enabled.checked = (+d.mirror_enabled !== 0);
+      if (!dirtyFields.has('quality')        && Number.isFinite(+d.quality))        frm.quality.value = d.quality;
+      if (!dirtyFields.has('framesize')      && Number.isFinite(+d.framesize))      frm.framesize.value = String(d.framesize);
+      if (!dirtyFields.has('light_enabled')  && Number.isFinite(+d.light_enabled))  frm.light_enabled.checked = (+d.light_enabled !== 0);
+      if (!dirtyFields.has('light_bri')      && Number.isFinite(+d.light_bri))      frm.light_bri.value = d.light_bri;
+      if (!dirtyFields.has('light_thr_ms')   && Number.isFinite(+d.light_thr_ms))   frm.light_thr_ms.value = d.light_thr_ms;
+      if (!dirtyFields.has('led_blue')       && Number.isFinite(+d.led_blue))       frm.led_blue.value = d.led_blue;
+      if (!dirtyFields.has('led_cap_ms')     && Number.isFinite(+d.led_cap_ms))     frm.led_cap_ms.value = d.led_cap_ms;
+      if (!dirtyFields.has('led_cap_bri')    && Number.isFinite(+d.led_cap_bri))    frm.led_cap_bri.value = d.led_cap_bri;
     })
     .catch(() => {});
 }
@@ -152,10 +168,12 @@ setInterval(pollStatus, 5000);
 // Settings form – submit via fetch
 document.getElementById('frm').addEventListener('submit', e => {
   e.preventDefault();
+  dirtyFields.clear();
   const msg = document.getElementById('msg');
   msg.textContent = 'Saving…';
   const fd = new FormData(e.target);
   fd.set('light_enabled', e.target.light_enabled.checked ? '1' : '0');
+  fd.set('mirror_enabled', e.target.mirror_enabled.checked ? '1' : '0');
   fetch('/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

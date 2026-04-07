@@ -178,7 +178,8 @@ void AppWebServer::handleStatus() {
     json += "\"light_status_at\":" + String(_lightStatusAt) + ",";
     json += "\"led_blue\":" + String(_config->getLedBlueBrightness()) + ",";
     json += "\"led_cap_ms\":" + String(_config->getLedCaptureDurationMs()) + ",";
-    json += "\"led_cap_bri\":" + String(_config->getLedCaptureBrightness());
+    json += "\"led_cap_bri\":" + String(_config->getLedCaptureBrightness()) + ",";
+    json += "\"mirror_enabled\":" + String(_config->getMirrorEnabled() ? 1 : 0);
     json += "}";
     _server.sendHeader("Connection", "close");
     _server.send(200, "application/json", json);
@@ -220,6 +221,9 @@ void AppWebServer::handleSaveSettings() {
     }
     if (_server.hasArg("led_cap_bri")) {
         _config->setLedCaptureBrightness(static_cast<uint8_t>(_server.arg("led_cap_bri").toInt()));
+    }
+    if (_server.hasArg("mirror_enabled")) {
+        _config->setMirrorEnabled(_server.arg("mirror_enabled").toInt() != 0);
     }
     _config->save();
     _server.send(200, "text/plain", "Saved. Rebooting...");

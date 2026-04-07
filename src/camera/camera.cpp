@@ -46,6 +46,13 @@ bool Camera::begin(const Config& config) {
         return false;
     }
 
+    sensor_t* s = esp_camera_sensor_get();
+    if (s) {
+        // Camera mirrors by default; unchecked = correct the mirror (hmirror=1),
+        // checked = leave mirrored (hmirror=0).
+        s->set_hmirror(s, config.getMirrorEnabled() ? 0 : 1);
+    }
+
     _ready = true;
     return true;
 }

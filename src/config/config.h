@@ -49,6 +49,10 @@ public:
     uint8_t getLedCaptureBrightness() const;
     void    setLedCaptureBrightness(uint8_t brightnessPercent);
 
+    // Horizontal mirror (flip image left-right), default false.
+    bool getMirrorEnabled() const;
+    void setMirrorEnabled(bool enabled);
+
     // Write all current values to NVS.
     void save();
 
@@ -68,4 +72,5 @@ private:
     uint8_t  _ledBlueBrightness{10};
     uint16_t _ledCaptureDurationMs{250};
     uint8_t  _ledCaptureBrightness{100};
+    bool     _mirrorEnabled{false};
 };
